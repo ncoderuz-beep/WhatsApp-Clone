@@ -13,9 +13,10 @@ interface Props {
   onCreateRoom: (type: 'direct' | 'group' | 'channel', name?: string, targetUserId?: string) => void;
   isDarkMode: boolean;
   onDarkModeToggle: () => void;
+  className?: string;
 }
 
-export default function Sidebar({ rooms, activeRoomId, onRoomSelect, onCreateRoom, isDarkMode, onDarkModeToggle }: Props) {
+export default function Sidebar({ rooms, activeRoomId, onRoomSelect, onCreateRoom, isDarkMode, onDarkModeToggle, className }: Props) {
   const { profile } = useAuth();
   const [search, setSearch] = useState('');
   const [showAddMenu, setShowAddMenu] = useState(false);
@@ -66,7 +67,7 @@ export default function Sidebar({ rooms, activeRoomId, onRoomSelect, onCreateRoo
   };
 
   return (
-    <div className="w-full max-w-[380px] border-r border-zinc-200 dark:border-zinc-800 flex flex-col h-full bg-white dark:bg-zinc-900 z-20">
+    <div className={`w-full md:max-w-[380px] border-r border-zinc-200 dark:border-zinc-800 flex flex-col h-full bg-white dark:bg-zinc-900 z-20 ${className}`}>
       {/* Header */}
       <div className="p-4 flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/50">
         <div className="flex items-center gap-3">

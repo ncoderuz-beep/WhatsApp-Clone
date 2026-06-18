@@ -4,16 +4,17 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, u
 import { useAuth } from '../App';
 import { ChatRoom, ChatMessage } from '../types';
 import { encryptMessage, decryptMessage } from '../lib/crypto';
-import { Send, Camera, Paperclip, MoreVertical, Search, Smile, Image as ImageIcon } from 'lucide-react';
+import { Send, Camera, Paperclip, MoreVertical, Search, Smile, Image as ImageIcon, ChevronLeft } from 'lucide-react';
 import MessageItem from './MessageItem';
 import { motion } from 'motion/react';
 
 interface Props {
   room: ChatRoom;
+  onBack: () => void;
   key?: string;
 }
 
-export default function ChatArea({ room }: Props) {
+export default function ChatArea({ room, onBack }: Props) {
   const { user, profile } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -92,12 +93,18 @@ export default function ChatArea({ room }: Props) {
       
       {/* Room Header */}
       <div className="h-[60px] flex items-center justify-between px-4 bg-zinc-50 dark:bg-zinc-800/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-700 relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-700 cursor-pointer" onClick={handleUpdateRoomImage}>
+        <div className="flex items-center gap-2 md:gap-3">
+          <button 
+            onClick={onBack}
+            className="md:hidden p-1 -ml-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition-colors"
+          >
+            <ChevronLeft className="w-6 h-6 text-zinc-600 dark:text-zinc-300" />
+          </button>
+          <div className="w-9 h-9 md:w-10 md:h-10 rounded-full overflow-hidden bg-zinc-200 dark:bg-zinc-700 cursor-pointer" onClick={handleUpdateRoomImage}>
             <img src={roomImage || `https://api.dicebear.com/7.x/initials/svg?seed=${room.name}`} alt={room.name} className="w-full h-full object-cover" />
           </div>
           <div>
-            <h3 className="text-sm font-bold dark:text-white leading-tight">{room.name}</h3>
+            <h3 className="text-sm font-bold dark:text-white leading-tight truncate max-w-[120px] md:max-w-none">{room.name}</h3>
             <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
               {room.type === 'channel' ? 'Kanal' : room.type === 'group' ? `${room.participants.length} qatnashchi` : 'Shaxsiy chat'}
             </span>

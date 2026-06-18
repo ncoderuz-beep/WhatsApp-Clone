@@ -89,10 +89,11 @@ export default function ChatMain({ onDarkModeToggle, isDarkMode }: Props) {
         onCreateRoom={handleCreateRoom}
         isDarkMode={isDarkMode}
         onDarkModeToggle={onDarkModeToggle}
+        className={`${activeRoom ? 'hidden md:flex' : 'flex'}`}
       />
-      <main className="flex-1 flex flex-col relative h-full">
+      <main className={`flex-1 flex flex-col relative h-full ${!activeRoom ? 'hidden md:flex' : 'flex'}`}>
         {activeRoom ? (
-          <ChatArea room={activeRoom} key={activeRoom.id} />
+          <ChatArea room={activeRoom} key={activeRoom.id} onBack={() => setActiveRoom(null)} />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-zinc-50 dark:bg-zinc-950/50">
             <div className="whatsapp-bg absolute inset-0 opacity-10 pointer-events-none" />
