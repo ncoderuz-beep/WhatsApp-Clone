@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "status": { "type": "string" },
+        "lastSeen": { "type": "string", "format": "date-time" },
+        "bannerImage": { "type": "string" }
+      },
+      "required": ["uid", "username", "displayName"]
+    },
+    "ChatRoom": {
+      "title": "Chat Room",
+      "description": "A direct chat, group, or channel",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["direct", "group", "channel"] },
+        "name": { "type": "string" },
+        "image": { "type": "string" },
+        "participants": { "type": "array", "items": { "type": "string" } },
+        "admins": { "type": "array", "items": { "type": "string" } },
+        "description": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastMessage": { "type": "string" },
+        "lastMessageTime": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "type"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "An encrypted message within a chat room",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string", "description": "AES Encrypted text content" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "isEdited": { "type": "boolean" },
+        "isDeleted": { "type": "boolean" },
+        "reactions": { "type": "object", "description": "Map of emoji to list of userIds" }
+      },
+      "required": ["id", "chatId", "senderId", "text", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Individual user profiles"
+    },
+    "/rooms/{roomId}": {
+      "schema": "ChatRoom",
+      "description": "Chat rooms, groups, and channels"
+    },
+    "/rooms/{roomId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Messages within a specific room"
+    }
+  }
+}

@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Validation Blueprints ---
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() <= 100 &&
+             data.username is string && data.username.size() >= 3 && data.username.size() <= 30;
+    }
+
+    function isValidRoom(data) {
+      return data.type in ['direct', 'group', 'channel'] &&
+             data.participants is list && data.participants.size() >= 1;
+    }
+
+    function isValidMessage(data) {
+      return data.chatId is string &&
+             data.senderId == request.auth.uid &&
+             data.text is string && data.text.size() <= 20000;
+    }
+
+    // --- Rules ---
+
+    // Users
+    match /users/{userId} {
+      allow get, list: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && 
+                      (!('username' in incoming()) || (incoming().username is string && incoming().username.size() >= 3));
+    }
+
+    // Chat Rooms
+    match /rooms/{roomId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && (request.auth.uid in incoming().participants);
+      allow update: if isSignedIn();
+
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow get, list: if isSignedIn();
+        allow create: if isSignedIn();
+        allow update: if isSignedIn() && (
+          resource.data.senderId == request.auth.uid || 
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reactions'])
+        );
+        allow delete: if isSignedIn() && resource.data.senderId == request.auth.uid;
+      }
+    }
+  }
+}
