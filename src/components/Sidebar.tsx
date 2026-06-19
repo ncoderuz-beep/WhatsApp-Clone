@@ -25,7 +25,7 @@ export default function Sidebar({ rooms, activeRoomId, onRoomSelect, onCreateRoo
 
   useEffect(() => {
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, orderBy('createdAt', 'desc'), limit(50));
+    const q = query(usersRef, limit(50));
 
     const unsubscribe = onSnapshot(q, (snap) => {
       const allUsers = snap.docs.map(doc => ({ ...doc.data() } as UserProfile));

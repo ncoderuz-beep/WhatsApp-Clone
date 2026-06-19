@@ -23,7 +23,7 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'qwerty') {
+    if (password === 'azamxonov') {
       setStep('google');
       setError('');
     } else {
@@ -53,9 +53,11 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
     } catch (err: any) {
       console.error('Google Login failed:', err);
       if (err.code === 'auth/popup-blocked') {
-        setError('Brauzer pop-up oynani blokladi. Iltimos, pop-uplarga ruxsat bering va qayta urining.');
+        setError('Brauzer pop-up oynani blokladi. Iltimos, pop-uplarga ruxsat bering.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError('Bu domen Firebase-da ruxsat etilmagan. Firebase Console -> Authentication -> Settings -> Authorized Domains bo\'limiga joriy domenni qo\'shing.');
       } else if (err.code === 'auth/admin-restricted-operation') {
-        setError('Google Login ruxsat etilmagan. Firebase Console -> Authentication -> Sign-in method bo\'limidan Google yoqilganini tekshiring.');
+        setError('Google Login ruxsat etilmagan. Firebase Console-dan Google-ni yoqing.');
       } else {
         setError('Xatolik: ' + err.message);
       }
