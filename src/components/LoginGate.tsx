@@ -20,6 +20,14 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
   const [bannerImage, setBannerImage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDomainHelper, setShowDomainHelper] = useState(false);
+  const [copiedDomain, setCopiedDomain] = useState<string | null>(null);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedDomain(text);
+    setTimeout(() => setCopiedDomain(null), 2000);
+  };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +63,8 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
       if (err.code === 'auth/popup-blocked') {
         setError('Brauzer pop-up oynani blokladi. Iltimos, pop-uplarga ruxsat bering.');
       } else if (err.code === 'auth/unauthorized-domain') {
-        setError('Bu domen Firebase-da ruxsat etilmagan. Firebase Console -> Authentication -> Settings -> Authorized Domains bo\'limiga joriy domenni qo\'shing.');
+        setError('Ushbu domen yangi Firebase loyihangizda ruxsat etilmagan! Uni test-dilnura loyihangizga qo\'shishingiz kerak.');
+        setShowDomainHelper(true);
       } else if (err.code === 'auth/admin-restricted-operation') {
         setError('Google Login ruxsat etilmagan. Firebase Console-dan Google-ni yoqing.');
       } else {
@@ -178,6 +187,47 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
             <p className="text-[10px] text-center text-zinc-500 dark:text-zinc-400">
               Prototype rejimida Google Auth faqat ruxsat berilgan bo'lsa ishlaydi.
             </p>
+
+            {showDomainHelper && (
+              <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl space-y-3">
+                <div className="text-amber-800 dark:text-amber-300 text-xs font-semibold flex items-center gap-2">
+                  <span>💡 Muammoning yechimi:</span>
+                </div>
+                <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                  Siz yaratgan yangi <strong className="font-bold">test-dilnura</strong> loyihasi sozlamalariga kirib, quyidagi domenlarni <strong className="font-bold">Authorized Domains</strong> ro'yxatiga qo'shish kerak. (Siz eski loyihaga qo'shgansiz, yangisiga emas).
+                </p>
+                
+                <div className="space-y-1.5 pt-1">
+                  {[
+                    window.location.hostname,
+                    'a-chats.vercel.app',
+                    'ais-dev-ajr5bouybzb4v6363k2lmt-300640974193.asia-southeast1.run.app',
+                    'ais-pre-ajr5bouybzb4v6363k2lmt-300640974193.asia-southeast1.run.app'
+                  ].filter((domain, index, self) => domain && self.indexOf(domain) === index).map((domain) => (
+                    <div key={domain} className="flex items-center justify-between bg-white dark:bg-zinc-800 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-[11px] font-mono text-zinc-600 dark:text-zinc-300">
+                      <span className="truncate max-w-[200px]">{domain}</span>
+                      <button 
+                        onClick={() => copyToClipboard(domain)} 
+                        className="text-[10px] bg-amber-100 hover:bg-amber-200 text-amber-800 px-2 py-0.5 rounded-md transition-colors"
+                      >
+                        {copiedDomain === domain ? 'Nusxa olindi!' : 'Nusxa olish'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 text-center">
+                  <a 
+                    href="https://console.firebase.google.com/project/test-dilnura/authentication/providers" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-block text-[11px] text-blue-600 dark:text-blue-400 font-bold hover:underline"
+                  >
+                    Firebase Console-ni ochish ↗
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
