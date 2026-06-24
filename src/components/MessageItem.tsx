@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import { doc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { ChatMessage } from '../types';
 import { formatTime } from '../lib/utils';
-import { Check, CheckCheck, Smile, Trash2, Edit2, X, Send } from 'lucide-react';
+import { Check, CheckCheck, Smile, Trash2, Edit2, X, Send, File, Download } from 'lucide-react';
 import { encryptMessage } from '../lib/crypto';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -109,7 +109,45 @@ export default function MessageItem({ message, isOwn, roomId, currentUserId, sho
               </div>
             </div>
           ) : (
-            <div className="leading-relaxed whitespace-pre-wrap">{message.text}</div>
+            <div className="space-y-1.5">
+              {message.fileURL && (
+                <div className="max-w-sm rounded-xl overflow-hidden border border-zinc-200/50 dark:border-zinc-700 bg-black/5 dark:bg-black/20 mb-1">
+                  {message.fileType?.startsWith('image/') ? (
+                    <img 
+                      src={message.fileURL} 
+                      alt={message.fileName || 'Rasm'} 
+                      className="max-h-64 w-full object-cover rounded-lg cursor-pointer hover:opacity-95 transition-opacity" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(message.fileURL, '_blank');
+                      }}
+                    />
+                  ) : (
+                    <div className="flex items-center gap-3 p-3 text-xs">
+                      <div className="p-2.5 bg-[#2481cc]/10 text-[#2481cc] dark:text-[#2fa5e4] rounded-xl shrink-0">
+                        <File className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0 pr-2">
+                        <p className="font-bold truncate text-zinc-900 dark:text-zinc-100">{message.fileName}</p>
+                        <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">{message.fileSize || 'Fayl'}</p>
+                      </div>
+                      <a 
+                        href={message.fileURL} 
+                        download={message.fileName} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 bg-white hover:bg-zinc-100 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-full transition-colors text-zinc-600 dark:text-zinc-300 shadow-sm shrink-0"
+                        title="Yuklab olish"
+                      >
+                        <Download className="w-4 h-4" />
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+              {message.text && <div className="leading-relaxed whitespace-pre-wrap">{message.text}</div>}
+            </div>
           )}
 
           <div className={`flex items-center justify-end gap-1 mt-0.5 text-[9px] select-none ${isOwn ? 'text-green-700/80 dark:text-[#7995b0]' : 'text-zinc-400 dark:text-[#7995b0]'}`}>

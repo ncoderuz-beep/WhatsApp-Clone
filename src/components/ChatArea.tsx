@@ -4,9 +4,24 @@ import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, u
 import { useAuth } from '../App';
 import { ChatRoom, ChatMessage, UserProfile } from '../types';
 import { encryptMessage, decryptMessage } from '../lib/crypto';
-import { Send, Camera, Paperclip, MoreVertical, Search, Smile, Image as ImageIcon, ChevronLeft, Trash2, AlertTriangle } from 'lucide-react';
+import { Send, Camera, Paperclip, MoreVertical, Search, Smile, Image as ImageIcon, ChevronLeft, Trash2, AlertTriangle, File, X } from 'lucide-react';
 import MessageItem from './MessageItem';
 import { motion, AnimatePresence } from 'motion/react';
+
+const EMOJI_CATEGORIES = [
+  {
+    title: 'Yuzlar va kulgichlar',
+    emojis: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓']
+  },
+  {
+    title: 'Yuraklar va qo\'llar',
+    emojis: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '👍', '👎', '✊', '🤛', '🤜', '🤝', '👊', '🤞', '🤟', '🤘', '👌', '🤌', '🤏', '👈', '👉', '👆', '👇', '☝️', '✋', '🤚', '🖐️', '🖖', '👋', '🤙', '💪', '🦾', '🙏', '👏', '✍️', '💅', '🤳']
+  },
+  {
+    title: 'Boshqa mashhurlar',
+    emojis: ['✨', '🌟', '⭐', '🔥', '💥', '🎉', '🎊', '🎈', '🎁', '🎂', '🎨', '🎬', '🎤', '🎧', '🎮', '🚗', '🏍️', '🚲', '✈️', '🚀', '🌍', '🧭', '🏔️', '🌋', '🏕️', '🏖️', '🏠', '🏡', '🏢', '🏫', '🌈', '☀️', '☁️', '☔', '⚡', '❄️', '☕', '🍕', '🍔', '🍟', '🍩', '🍪', '⚽', '🏆', '🎵', '🔔', '📌', '📎', '💻', '📱']
+  }
+];
 
 interface Props {
   room: ChatRoom;
@@ -20,12 +35,54 @@ export default function ChatArea({ room, onBack }: Props) {
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  
   const [roomImage, setRoomImage] = useState(room.image);
   const [showMenu, setShowMenu] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [otherUserProfile, setOtherUserProfile] = useState<UserProfile | null>(null);
 
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFileData, setSelectedFileData] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFileType, setSelectedFileType] = useState<string | null>(null);
+  const [selectedFileSize, setSelectedFileSize] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+
   const otherUserId = room.participants?.find(p => p !== user?.uid);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setFileError(null);
+
+    // Limit to 1.5MB to stay safely within string/Firestore document size constraints
+    if (file.size > 1.5 * 1024 * 1024) {
+      setFileError('Fayl hajmi juda katta. Iltimos, 1.5 MB dan kichik bo\'lgan faylni tanlang.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setSelectedFileData(event.target.result as string);
+        setSelectedFileName(file.name);
+        setSelectedFileType(file.type);
+        
+        const sizeInKb = file.size / 1024;
+        const sizeStr = sizeInKb > 1024 
+          ? `${(sizeInKb / 1024).toFixed(1)} MB` 
+          : `${sizeInKb.toFixed(0)} KB`;
+        setSelectedFileSize(sizeStr);
+      }
+    };
+    reader.onerror = () => {
+      setFileError('Faylni o\'qishda xatolik yuz berdi.');
+    };
+    reader.readAsDataURL(file);
+  };
 
   useEffect(() => {
     if (room.type === 'direct' && otherUserId) {
@@ -69,10 +126,26 @@ export default function ChatArea({ room, onBack }: Props) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !user) return;
+    if ((!inputText.trim() && !selectedFileData) || !user) return;
 
-    const encrypted = encryptMessage(inputText.trim());
+    const currentText = inputText.trim();
+    const encrypted = encryptMessage(currentText);
+    
+    const currentFileData = selectedFileData;
+    const currentFileName = selectedFileName;
+    const currentFileType = selectedFileType;
+    const currentFileSize = selectedFileSize;
+
+    // Reset input fields instantly for ultra-fast UX response
     setInputText('');
+    setSelectedFileData(null);
+    setSelectedFileName(null);
+    setSelectedFileType(null);
+    setSelectedFileSize(null);
+    setFileError(null);
+    setShowEmojiPicker(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
 
     try {
       await addDoc(collection(db, 'rooms', room.id, 'messages'), {
@@ -83,13 +156,23 @@ export default function ChatArea({ room, onBack }: Props) {
         timestamp: serverTimestamp(),
         isEdited: false,
         isDeleted: false,
-        reactions: {}
+        reactions: {},
+        ...(currentFileData ? {
+          fileURL: currentFileData,
+          fileName: currentFileName,
+          fileType: currentFileType,
+          fileSize: currentFileSize
+        } : {})
       });
 
       // Update last message in room
       const roomRef = doc(db, 'rooms', room.id);
+      let lastMsgText = currentText;
+      if (!lastMsgText && currentFileName) {
+        lastMsgText = currentFileType?.startsWith('image/') ? '📷 Rasm' : `📁 ${currentFileName}`;
+      }
       await updateDoc(roomRef, {
-        lastMessage: inputText.trim(),
+        lastMessage: lastMsgText,
         lastMessageTime: serverTimestamp()
       });
     } catch (e) {
@@ -262,33 +345,149 @@ export default function ChatArea({ room, onBack }: Props) {
         ))}
       </div>
 
+      {/* File Preview if any selected */}
+      {(selectedFileData || fileError) && (
+        <div className="px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/60 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-4 relative z-10">
+          {fileError ? (
+            <div className="text-xs text-red-500 font-semibold flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {fileError}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              {selectedFileType?.startsWith('image/') ? (
+                <div className="w-12 h-12 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 shrink-0">
+                  <img src={selectedFileData} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-[#2481cc]/10 text-[#2481cc] dark:text-[#2fa5e4] flex items-center justify-center shrink-0">
+                  <File className="w-6 h-6" />
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-bold truncate text-zinc-900 dark:text-white">{selectedFileName}</p>
+                <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">{selectedFileSize}</p>
+              </div>
+            </div>
+          )}
+          <button 
+            type="button" 
+            onClick={() => {
+              setSelectedFileData(null);
+              setSelectedFileName(null);
+              setSelectedFileType(null);
+              setSelectedFileSize(null);
+              setFileError(null);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+              if (cameraInputRef.current) cameraInputRef.current.value = '';
+            }} 
+            className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Emoji Picker Popover */}
+      <AnimatePresence>
+        {showEmojiPicker && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowEmojiPicker(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              className="absolute bottom-16 left-4 right-4 md:left-6 md:right-auto md:w-[350px] max-h-[280px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden"
+            >
+              <div className="p-3 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900 flex justify-between items-center">
+                <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Emoji va Smayllar</span>
+                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-4">
+                {EMOJI_CATEGORIES.map((cat, idx) => (
+                  <div key={idx} className="space-y-1.5">
+                    <h4 className="text-[10px] font-bold text-zinc-400 dark:text-[#7995b0] uppercase tracking-wider">{cat.title}</h4>
+                    <div className="grid grid-cols-8 gap-1">
+                      {cat.emojis.map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            setInputText(prev => prev + emoji);
+                          }}
+                          className="text-xl p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg active:scale-90 transition-transform flex items-center justify-center"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Input Area */}
       <div className="p-3 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800/80 relative z-10">
         <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex items-center gap-3">
-          <button type="button" className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-[#7995b0] transition-colors">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            onChange={handleFileChange} 
+          />
+          <input 
+            type="file" 
+            ref={cameraInputRef} 
+            accept="image/*" 
+            className="hidden" 
+            onChange={handleFileChange} 
+          />
+
+          <button 
+            type="button" 
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className={`p-2 rounded-full transition-colors ${showEmojiPicker ? 'bg-zinc-100 text-[#2481cc] dark:bg-zinc-800 dark:text-[#2fa5e4]' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-[#7995b0]'}`}
+            title="Emoji tanlash"
+          >
             <Smile className="w-6 h-6" />
           </button>
-          <button type="button" className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-[#7995b0] transition-colors">
+          <button 
+            type="button" 
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-[#7995b0] transition-colors"
+            title="Fayl biriktirish"
+          >
             <Paperclip className="w-6 h-6" />
           </button>
           <input 
             type="text" 
-            placeholder="Xabar yozing..."
+            placeholder={selectedFileData ? "Izoh yozing..." : "Xabar yozing..."}
             className="flex-1 bg-zinc-100 dark:bg-zinc-800 py-2.5 px-4 rounded-xl outline-none border border-transparent focus:border-[#2481cc]/20 dark:focus:border-[#2fa5e4]/20 text-zinc-950 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#7995b0] text-sm shadow-sm"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
           />
-          {inputText.trim() ? (
+          {(inputText.trim() || selectedFileData) ? (
             <motion.button 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               type="submit" 
               className="p-3 bg-[#2481cc] hover:bg-[#1d6fa5] dark:bg-[#2fa5e4] dark:hover:bg-[#1d6fa5] rounded-full text-white shadow-lg shrink-0"
+              title="Yuborish"
             >
               <Send className="w-5 h-5" />
             </motion.button>
           ) : (
-            <button type="button" className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-[#7995b0] transition-colors">
+            <button 
+              type="button" 
+              onClick={() => cameraInputRef.current?.click()}
+              className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-[#7995b0] transition-colors"
+              title="Rasm yuklash"
+            >
               <Camera className="w-6 h-6" />
             </button>
           )}

@@ -47,4 +47,8 @@ export interface ChatMessage {
   isEdited?: boolean;
   isDeleted?: boolean;
   reactions?: MessageReaction;
+  fileURL?: string;
+  fileName?: string;
+  fileType?: string;
+  fileSize?: string;
 }
