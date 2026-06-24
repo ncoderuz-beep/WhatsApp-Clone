@@ -2,21 +2,59 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  
+  --color-zinc-50: var(--zinc-50);
+  --color-zinc-100: var(--zinc-100);
+  --color-zinc-200: var(--zinc-200);
+  --color-zinc-300: var(--zinc-300);
+  --color-zinc-400: var(--zinc-400);
+  --color-zinc-500: var(--zinc-500);
+  --color-zinc-600: var(--zinc-600);
+  --color-zinc-700: var(--zinc-700);
+  --color-zinc-800: var(--zinc-800);
+  --color-zinc-900: var(--zinc-900);
+  --color-zinc-950: var(--zinc-950);
+}
+
+:root {
+  /* Standard light contrast: 50 is light, 900/950 is dark */
+  --zinc-50: #f8fafc;         /* Very light slate */
+  --zinc-100: #f1f5f9;        /* Light slate inputs */
+  --zinc-200: #e2e8f0;        /* Light borders */
+  --zinc-300: #cbd5e1;        /* Divider slate */
+  --zinc-400: #94a3b8;        /* Muted info text */
+  --zinc-500: #64748b;        /* Secondary text */
+  --zinc-600: #475569;        /* Primary body text */
+  --zinc-700: #334155;        /* Secondary bold labels */
+  --zinc-800: #1e293b;        /* Dark bold titles */
+  --zinc-900: #0f172a;        /* Almost black text */
+  --zinc-950: #ffffff;        /* Pure white background */
+}
+
+.dark {
+  /* Standard dark contrast: 50 is light (text), 900/950 is dark (background) */
+  --zinc-50: #f8fafc;         /* Crisp white text */
+  --zinc-100: #f1f5f9;        /* Very light text */
+  --zinc-200: #e2e8f0;        /* Readable light-grey text */
+  --zinc-300: #cbd5e1;        /* Secondary light text */
+  --zinc-400: #7995b0;        /* Telegram muted blue-grey text */
+  --zinc-500: #a2b5c7;        /* Telegram readable light-blue/grey details */
+  --zinc-600: #2b5278;        /* Active accent / message bubble blue dark */
+  --zinc-700: #1b2a39;        /* Hover / border subtle */
+  --zinc-800: #101921;        /* Dark blue borders / dark inputbg */
+  --zinc-900: #17212b;        /* Telegram dark sidebar/panel bg */
+  --zinc-950: #0e1621;        /* Telegram deep dark-blue space background */
 }
 
 @layer base {
   body {
-    @apply bg-neutral-100 text-neutral-900 transition-colors duration-300;
-  }
-  
-  .dark body {
-    @apply bg-zinc-950 text-zinc-100;
+    @apply bg-[#eef2f5] dark:bg-[#0e1621] text-black dark:text-slate-100 transition-colors duration-300;
   }
 }
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -24,11 +62,30 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-neutral-300 rounded-full;
+  @apply bg-neutral-300/60 rounded-full hover:bg-neutral-400;
 }
 
 .dark ::-webkit-scrollbar-thumb {
-  @apply bg-zinc-700;
+  @apply bg-zinc-700/60 rounded-full hover:bg-zinc-600;
+}
+
+.telegram-bg {
+  /* Genuine Telegram web desktop visual background look */
+  background-color: #eef2f5;
+  background-image: radial-gradient(at 0% 0%, hsla(201,36%,86%,1) 0, transparent 50%),
+                    radial-gradient(at 50% 0%, hsla(192,29%,88%,1) 0, transparent 50%),
+                    radial-gradient(at 100% 0%, hsla(197,35%,86%,1) 0, transparent 50%),
+                    radial-gradient(at 0% 100%, hsla(190,20%,85%,1) 0, transparent 50%),
+                    radial-gradient(at 100% 100%, hsla(195,25%,86%,1) 0, transparent 50%);
+}
+
+.dark .telegram-bg {
+  background-color: #0e1621;
+  background-image: radial-gradient(at 0% 0%, hsla(215,62%,12%,1) 0, transparent 50%),
+                    radial-gradient(at 50% 0%, hsla(212,50%,10%,1) 0, transparent 50%),
+                    radial-gradient(at 100% 0%, hsla(215,62%,12%,1) 0, transparent 50%),
+                    radial-gradient(at 0% 100%, hsla(210,40%,8%,1) 0, transparent 50%),
+                    radial-gradient(at 100% 100%, hsla(212,45%,11%,1) 0, transparent 50%);
 }
 
 .whatsapp-bg {
@@ -39,3 +96,4 @@
 .dark .whatsapp-bg {
   filter: invert(100%) opacity(0.06);
 }
+

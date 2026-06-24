@@ -35,30 +35,38 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubProfile: (() => void) | null = null;
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser);
-        await fetchProfile(firebaseUser.uid);
+        
+        // Listen to profile changes in real-time
+        const docRef = doc(db, 'users', firebaseUser.uid);
+        unsubProfile = onSnapshot(docRef, (snapshot) => {
+          if (snapshot.exists()) {
+            setProfile(snapshot.data() as UserProfile);
+          }
+          setLoading(false);
+        }, (err) => {
+          console.error('Profile snapshot listener error:', err);
+          setLoading(false);
+        });
       } else {
         setUser(null);
         setProfile(null);
+        if (unsubProfile) {
+          unsubProfile();
+          unsubProfile = null;
+        }
+        setLoading(false);
       }
-      setLoading(false);
     });
-    return unsub;
-  }, []);
 
-  const fetchProfile = async (uid: string) => {
-    try {
-      const docRef = doc(db, 'users', uid);
-      const snapshot = await getDoc(docRef);
-      if (snapshot.exists()) {
-        setProfile(snapshot.data() as UserProfile);
-      }
-    } catch (e) {
-      console.error('Error fetching profile', e);
-    }
-  };
+    return () => {
+      unsubAuth();
+      if (unsubProfile) unsubProfile();
+    };
+  }, []);
 
   useEffect(() => {
     if (isDarkMode) {
@@ -72,9 +80,7 @@ export default function App() {
     user,
     profile,
     loading,
-    refreshProfile: async () => {
-      if (user) await fetchProfile(user.uid);
-    },
+    refreshProfile: async () => {},
   };
 
   if (loading) {
@@ -83,7 +89,7 @@ export default function App() {
         <motion.div
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ repeat: Infinity, duration: 1.5 }}
-          className="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full"
+          className="w-12 h-12 border-4 border-[#2481cc] border-t-transparent rounded-full"
         />
       </div>
     );

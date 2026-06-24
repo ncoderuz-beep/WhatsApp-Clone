@@ -86,36 +86,36 @@ export default function MessageItem({ message, isOwn, roomId, currentUserId, sho
         onClick={() => setShowActions(!showActions)}
       >
         <div className={`
-          px-3 py-1.5 rounded-2xl shadow-sm text-sm break-words
+          px-3.5 py-1.5 rounded-2xl shadow-[0_1px_2px_rgba(0,0,0,0.08)] text-sm break-words transition-all
           ${isOwn 
-            ? 'bg-green-500 text-white rounded-tr-none' 
-            : 'bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 rounded-tl-none'}
+            ? 'bg-[#e2f7cb] text-zinc-900 dark:bg-[#2b5278] dark:text-zinc-100 rounded-tr-none border-t border-r border-[#d4f2b5]/30 dark:border-zinc-700/30' 
+            : 'bg-white text-zinc-900 dark:bg-[#182533] dark:text-zinc-100 rounded-tl-none border-t border-l border-zinc-100/50 dark:border-zinc-800/50'}
         `}>
           {showSenderName && !isOwn && (
-            <div className="text-[10px] font-bold text-blue-500 mb-0.5">{message.senderName}</div>
+            <div className="text-[10px] font-bold text-[#2481cc] dark:text-[#2fa5e4] mb-0.5">{message.senderName}</div>
           )}
           
           {isEditing ? (
             <div className="flex flex-col gap-2 min-w-[200px]">
               <textarea
-                className="w-full bg-zinc-600/20 rounded p-1 outline-none text-white text-sm"
+                className="w-full bg-zinc-600/20 rounded p-1.5 outline-none text-zinc-900 dark:text-white text-sm"
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
                 autoFocus
               />
               <div className="flex justify-end gap-2">
-                <button onClick={() => setIsEditing(false)}><X className="w-4 h-4" /></button>
-                <button onClick={handleEdit}><Send className="w-4 h-4 text-white" /></button>
+                <button onClick={() => setIsEditing(false)} className="text-zinc-500"><X className="w-4 h-4" /></button>
+                <button onClick={handleEdit} className="text-[#2481cc] dark:text-[#2fa5e4]"><Send className="w-4 h-4" /></button>
               </div>
             </div>
           ) : (
             <div className="leading-relaxed whitespace-pre-wrap">{message.text}</div>
           )}
 
-          <div className={`flex items-center justify-end gap-1 mt-0.5 text-[9px] ${isOwn ? 'text-white/70' : 'text-zinc-400'}`}>
-            {message.isEdited && <span>tahrirlandi</span>}
+          <div className={`flex items-center justify-end gap-1 mt-0.5 text-[9px] select-none ${isOwn ? 'text-green-700/80 dark:text-[#7995b0]' : 'text-zinc-400 dark:text-[#7995b0]'}`}>
+            {message.isEdited && <span className="opacity-75">tahrirlandi</span>}
             <span>{formatTime(message.timestamp)}</span>
-            {isOwn && <CheckCheck className="w-3 h-3" />}
+            {isOwn && <CheckCheck className="w-3.5 h-3.5 text-[#4ca3ff] dark:text-[#2fa5e4]" />}
           </div>
         </div>
 

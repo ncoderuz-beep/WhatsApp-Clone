@@ -133,7 +133,7 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
 
       <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl p-8 border border-zinc-200 dark:border-zinc-800">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center mb-4">
+          <div className="w-16 h-16 bg-[#2481cc] dark:bg-[#2fa5e4] rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
             <span className="text-white text-3xl font-bold">W</span>
           </div>
           <h1 className="text-2xl font-bold dark:text-white">Xush kelibsiz</h1>
@@ -155,14 +155,14 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
                 <input
                   type="password"
                   placeholder="Parolni kiriting"
-                  className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 outline-none text-zinc-900 dark:text-zinc-50 focus:border-green-500 transition-all"
+                  className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border border-zinc-200 dark:border-zinc-700 outline-none text-zinc-900 dark:text-zinc-50 focus:border-[#2481cc] dark:focus:border-[#2fa5e4] transition-all"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoFocus
                 />
               </div>
             </div>
-            <button className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-2xl shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all">
+            <button className="w-full py-4 bg-[#2481cc] hover:bg-[#1d6fa5] dark:bg-[#2fa5e4] dark:hover:bg-[#1d6fa5] text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all">
               Davom etish
             </button>
           </form>
@@ -235,7 +235,7 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
           <form onSubmit={handleProfileSubmit} className="space-y-6">
             <div className="flex flex-col items-center mb-4">
               <div className="relative group cursor-pointer" title="Rasm yuklash">
-                <div className="w-24 h-24 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center border-2 border-green-500 shadow-xl">
+                <div className="w-24 h-24 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden flex items-center justify-center border-2 border-[#2481cc] dark:border-[#2fa5e4] shadow-xl">
                   {photoURL ? (
                     <img src={photoURL} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
@@ -263,7 +263,7 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
                   <input
                     type="text"
                     placeholder="Ismingizni kiriting"
-                    className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none text-zinc-900 dark:text-zinc-50 focus:border-green-500"
+                    className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none text-zinc-900 dark:text-zinc-50 focus:border-[#2481cc] dark:focus:border-[#2fa5e4]"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     required
@@ -278,7 +278,7 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
                   <input
                     type="text"
                     placeholder="username"
-                    className="w-full pl-10 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none text-zinc-900 dark:text-zinc-50 focus:border-green-500"
+                    className="w-full pl-10 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none text-zinc-900 dark:text-zinc-50 focus:border-[#2481cc] dark:focus:border-[#2fa5e4]"
                     value={username}
                     onChange={(e) => setUsername(e.target.value.replace(/\s+/g, '').toLowerCase())}
                     required
@@ -293,7 +293,7 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
                   <input
                     type="text"
                     placeholder="Banner rasm URL"
-                    className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none text-zinc-900 dark:text-zinc-50 focus:border-green-500"
+                    className="w-full pl-12 pr-4 py-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl outline-none text-zinc-900 dark:text-zinc-50 focus:border-[#2481cc] dark:focus:border-[#2fa5e4]"
                     value={bannerImage}
                     onChange={(e) => setBannerImage(e.target.value)}
                   />
@@ -301,7 +301,7 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
               </div>
             </div>
             
-            <button className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-bold rounded-2xl shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all flex items-center justify-center">
+            <button className="w-full py-4 bg-[#2481cc] hover:bg-[#1d6fa5] dark:bg-[#2fa5e4] dark:hover:bg-[#1d6fa5] text-white font-bold rounded-2xl shadow-lg shadow-blue-500/20 active:scale-[0.98] transition-all flex items-center justify-center">
               {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Boshlash'}
             </button>
           </form>

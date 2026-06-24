@@ -14,6 +14,9 @@ export interface UserProfile {
   lastSeen?: any;
   createdAt?: any;
   bannerImage?: string;
+  hideOnline?: boolean;
+  bio?: string;
+  phoneNumber?: string;
 }
 
 export interface ChatRoom {

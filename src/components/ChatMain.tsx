@@ -95,16 +95,16 @@ export default function ChatMain({ onDarkModeToggle, isDarkMode }: Props) {
         {activeRoom ? (
           <ChatArea room={activeRoom} key={activeRoom.id} onBack={() => setActiveRoom(null)} />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-zinc-50 dark:bg-zinc-950/50">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-zinc-100 dark:bg-[#0e1621] relative overflow-hidden">
             <div className="whatsapp-bg absolute inset-0 opacity-10 pointer-events-none" />
-            <div className="relative z-10 max-w-sm">
+            <div className="relative z-10 max-w-sm p-8 rounded-3xl bg-white/75 dark:bg-[#17212b]/75 backdrop-blur-md border border-zinc-200/50 dark:border-zinc-800/50 shadow-xl">
               {profile?.bannerImage ? (
-                <div className="w-full h-48 rounded-2xl overflow-hidden mb-6 shadow-xl">
+                <div className="w-full h-40 rounded-2xl overflow-hidden mb-6 shadow-md border border-zinc-200 dark:border-zinc-700">
                   <img src={profile.bannerImage} alt="Banner" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                <div className="w-24 h-24 bg-green-500/10 dark:bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <span className="text-4xl text-green-500 font-bold">W</span>
+                <div className="w-24 h-24 bg-[#2481cc]/10 dark:bg-[#2fa5e4]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <span className="text-4xl text-[#2481cc] dark:text-[#2fa5e4] font-bold">W</span>
                 </div>
               )}
               <h2 className="text-2xl font-bold dark:text-white mb-2">WhatsApp Web</h2>
