@@ -34,6 +34,33 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(true);
 
+  const [gatePassword, setGatePassword] = useState<string>('azamxonov');
+  const [isGateVerified, setIsGateVerified] = useState<boolean>(false);
+  const [gateLoading, setGateLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const docRef = doc(db, 'settings', 'security');
+    const unsub = onSnapshot(docRef, (snapshot) => {
+      let currentPass = 'azamxonov';
+      if (snapshot.exists()) {
+        currentPass = snapshot.data().gatePassword || 'azamxonov';
+      }
+      setGatePassword(currentPass);
+      
+      const stored = sessionStorage.getItem('gate_verified_password') || '';
+      if (stored === currentPass) {
+        setIsGateVerified(true);
+      } else {
+        setIsGateVerified(false);
+      }
+      setGateLoading(false);
+    }, (err) => {
+      console.error('Gate security snapshot error:', err);
+      setGateLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
   useEffect(() => {
     let unsubProfile: (() => void) | null = null;
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -83,7 +110,7 @@ export default function App() {
     refreshProfile: async () => {},
   };
 
-  if (loading) {
+  if (loading || gateLoading) {
     return (
       <div className="h-screen w-full flex items-center justify-center bg-zinc-950">
         <motion.div
@@ -99,9 +126,17 @@ export default function App() {
     <AuthContext.Provider value={value}>
       <div className="h-screen overflow-hidden font-sans">
         <AnimatePresence mode="wait">
-          {!user || !profile ? (
+          {!user || !profile || !isGateVerified ? (
             <motion.div key="login" className="h-full w-full">
-              <LoginGate onDarkModeToggle={() => setIsDarkMode(!isDarkMode)} isDarkMode={isDarkMode} />
+              <LoginGate 
+                onDarkModeToggle={() => setIsDarkMode(!isDarkMode)} 
+                isDarkMode={isDarkMode} 
+                gatePassword={gatePassword}
+                onVerifyGate={(pass) => {
+                  sessionStorage.setItem('gate_verified_password', pass);
+                  setIsGateVerified(true);
+                }}
+              />
             </motion.div>
           ) : (
             <motion.div key="main" className="h-full w-full">

@@ -57,6 +57,12 @@ service cloud.firestore {
                       (!('username' in incoming()) || (incoming().username is string && incoming().username.size() >= 3));
     }
 
+    // Settings / Config
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
     // Chat Rooms
     match /rooms/{roomId} {
       allow get, list: if isSignedIn();

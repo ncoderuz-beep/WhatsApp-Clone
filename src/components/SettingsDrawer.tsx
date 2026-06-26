@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../lib/firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, setDoc } from 'firebase/firestore';
 import { UserProfile } from '../types';
 import { motion } from 'motion/react';
-import { ArrowLeft, Camera, User, Phone, Info, Globe, Shield, Save, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Camera, User, Phone, Info, Globe, Shield, Save, Eye, EyeOff, Lock } from 'lucide-react';
 
 interface Props {
   profile: UserProfile;
@@ -22,6 +22,26 @@ export default function SettingsDrawer({ profile, onClose }: Props) {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const [newGatePassword, setNewGatePassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+
+  useEffect(() => {
+    const fetchGatePassword = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'security');
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          setNewGatePassword(snap.data().gatePassword || 'azamxonov');
+        } else {
+          setNewGatePassword('azamxonov');
+        }
+      } catch (err) {
+        console.error('Failed to fetch security setting:', err);
+      }
+    };
+    fetchGatePassword();
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,6 +69,13 @@ export default function SettingsDrawer({ profile, onClose }: Props) {
         phoneNumber: phoneNumber.trim(),
         hideOnline: hideOnline,
       });
+
+      // Save global gate password if modified
+      if (newGatePassword.trim()) {
+        const securityRef = doc(db, 'settings', 'security');
+        await setDoc(securityRef, { gatePassword: newGatePassword.trim() }, { merge: true });
+        sessionStorage.setItem('gate_verified_password', newGatePassword.trim());
+      }
 
       setSuccessMsg('Sozlamalar muvaffaqiyatli saqlandi!');
       setTimeout(() => {
@@ -221,6 +248,34 @@ export default function SettingsDrawer({ profile, onClose }: Props) {
               >
                 <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${hideOnline ? 'translate-x-6' : 'translate-x-0'}`} />
               </button>
+            </div>
+
+            {/* Gate Password Change */}
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
+              <div className="flex items-start gap-3">
+                <Lock className="w-5 h-5 text-[#2481cc] dark:text-[#2fa5e4] shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-xs font-bold text-zinc-950 dark:text-white">Kirish parolini o'zgartirish</h4>
+                  <p className="text-[10px] text-zinc-500 dark:text-[#7995b0] mt-0.5">Ilova barcha foydalanuvchilari uchun umumiy kirish paroli</p>
+                </div>
+              </div>
+              
+              <div className="relative pt-1">
+                <input
+                  type={showPass ? "text" : "password"}
+                  placeholder="Yangi parol kiriting"
+                  className="w-full pl-3 pr-10 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl outline-none text-zinc-950 dark:text-white focus:border-[#2481cc] dark:focus:border-[#2fa5e4] text-xs transition-all"
+                  value={newGatePassword}
+                  onChange={(e) => setNewGatePassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(!showPass)}
+                  className="absolute right-3 top-[14px] text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                >
+                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
 

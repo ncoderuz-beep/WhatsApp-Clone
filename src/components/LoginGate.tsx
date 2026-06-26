@@ -8,10 +8,11 @@ import { Lock, User, Camera, Sun, Moon, Image as ImageIcon, Chrome } from 'lucid
 interface Props {
   onDarkModeToggle: () => void;
   isDarkMode: boolean;
-  key?: string;
+  gatePassword: string;
+  onVerifyGate: (password: string) => void;
 }
 
-export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
+export default function LoginGate({ onDarkModeToggle, isDarkMode, gatePassword, onVerifyGate }: Props) {
   const [step, setStep] = useState<'password' | 'google' | 'profile'>('password');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -31,8 +32,20 @@ export default function LoginGate({ onDarkModeToggle, isDarkMode }: Props) {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'azamxonov') {
-      setStep('google');
+    if (password === gatePassword) {
+      onVerifyGate(password);
+      if (auth.currentUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+          if (!userDoc.exists()) {
+            setStep('profile');
+          }
+        } catch (err) {
+          console.error('Error fetching user profile during gate verification:', err);
+        }
+      } else {
+        setStep('google');
+      }
       setError('');
     } else {
       setError('Noto\'g\'ri parol!');

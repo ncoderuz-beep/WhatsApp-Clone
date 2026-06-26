@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { db } from '../lib/firebase';
+import { db, storage } from '../lib/firebase';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../App';
 import { ChatRoom, ChatMessage, UserProfile } from '../types';
 import { encryptMessage, decryptMessage } from '../lib/crypto';
@@ -44,11 +45,13 @@ export default function ChatArea({ room, onBack }: Props) {
   const [otherUserProfile, setOtherUserProfile] = useState<UserProfile | null>(null);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileData, setSelectedFileData] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFileType, setSelectedFileType] = useState<string | null>(null);
   const [selectedFileSize, setSelectedFileSize] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const otherUserId = room.participants?.find(p => p !== user?.uid);
 
@@ -58,30 +61,28 @@ export default function ChatArea({ room, onBack }: Props) {
 
     setFileError(null);
 
-    // Limit to 1.5MB to stay safely within string/Firestore document size constraints
-    if (file.size > 1.5 * 1024 * 1024) {
-      setFileError('Fayl hajmi juda katta. Iltimos, 1.5 MB dan kichik bo\'lgan faylni tanlang.');
+    // Now we support files up to 20MB safely using Firebase Storage!
+    if (file.size > 20 * 1024 * 1024) {
+      setFileError('Fayl hajmi juda katta. Iltimos, 20 MB dan kichik bo\'lgan faylni tanlang.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        setSelectedFileData(event.target.result as string);
-        setSelectedFileName(file.name);
-        setSelectedFileType(file.type);
-        
-        const sizeInKb = file.size / 1024;
-        const sizeStr = sizeInKb > 1024 
-          ? `${(sizeInKb / 1024).toFixed(1)} MB` 
-          : `${sizeInKb.toFixed(0)} KB`;
-        setSelectedFileSize(sizeStr);
-      }
-    };
-    reader.onerror = () => {
-      setFileError('Faylni o\'qishda xatolik yuz berdi.');
-    };
-    reader.readAsDataURL(file);
+    setSelectedFile(file);
+    setSelectedFileName(file.name);
+    setSelectedFileType(file.type);
+    
+    const sizeInKb = file.size / 1024;
+    const sizeStr = sizeInKb > 1024 
+      ? `${(sizeInKb / 1024).toFixed(1)} MB` 
+      : `${sizeInKb.toFixed(0)} KB`;
+    setSelectedFileSize(sizeStr);
+
+    if (file.type.startsWith('image/')) {
+      const objectURL = URL.createObjectURL(file);
+      setSelectedFileData(objectURL);
+    } else {
+      setSelectedFileData(null);
+    }
   };
 
   useEffect(() => {
@@ -126,18 +127,19 @@ export default function ChatArea({ room, onBack }: Props) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!inputText.trim() && !selectedFileData) || !user) return;
+    if ((!inputText.trim() && !selectedFile) || !user || isUploading) return;
 
     const currentText = inputText.trim();
     const encrypted = encryptMessage(currentText);
     
-    const currentFileData = selectedFileData;
+    const fileToUpload = selectedFile;
     const currentFileName = selectedFileName;
     const currentFileType = selectedFileType;
     const currentFileSize = selectedFileSize;
 
     // Reset input fields instantly for ultra-fast UX response
     setInputText('');
+    setSelectedFile(null);
     setSelectedFileData(null);
     setSelectedFileName(null);
     setSelectedFileType(null);
@@ -148,6 +150,35 @@ export default function ChatArea({ room, onBack }: Props) {
     if (cameraInputRef.current) cameraInputRef.current.value = '';
 
     try {
+      let finalFileURL = '';
+
+      if (fileToUpload) {
+        setIsUploading(true);
+        try {
+          // Upload to Firebase Storage
+          const storagePath = `rooms/${room.id}/${Date.now()}_${fileToUpload.name}`;
+          const storageRef = ref(storage, storagePath);
+          const uploadResult = await uploadBytes(storageRef, fileToUpload);
+          finalFileURL = await getDownloadURL(uploadResult.ref);
+        } catch (storageErr) {
+          console.error('Firebase Storage failed, trying base64 fallback:', storageErr);
+          
+          // Fallback: If it's a small file (< 800KB), we can convert to base64 string
+          if (fileToUpload.size < 800 * 1024) {
+            finalFileURL = await new Promise<string>((resolve, reject) => {
+              const r = new FileReader();
+              r.onload = (ev) => resolve(ev.target?.result as string);
+              r.onerror = (err) => reject(err);
+              r.readAsDataURL(fileToUpload);
+            });
+          } else {
+            setFileError('Faylni yuklab bo\'lmadi. Internet aloqangizni tekshiring.');
+            setIsUploading(false);
+            return;
+          }
+        }
+      }
+
       await addDoc(collection(db, 'rooms', room.id, 'messages'), {
         chatId: room.id,
         senderId: user.uid,
@@ -157,8 +188,8 @@ export default function ChatArea({ room, onBack }: Props) {
         isEdited: false,
         isDeleted: false,
         reactions: {},
-        ...(currentFileData ? {
-          fileURL: currentFileData,
+        ...(finalFileURL ? {
+          fileURL: finalFileURL,
           fileName: currentFileName,
           fileType: currentFileType,
           fileSize: currentFileSize
@@ -175,8 +206,11 @@ export default function ChatArea({ room, onBack }: Props) {
         lastMessage: lastMsgText,
         lastMessageTime: serverTimestamp()
       });
-    } catch (e) {
-      console.error('Error sending message', e);
+    } catch (err) {
+      console.error('Error sending message', err);
+      setFileError('Xabar yuborishda xatolik yuz berdi.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -346,7 +380,7 @@ export default function ChatArea({ room, onBack }: Props) {
       </div>
 
       {/* File Preview if any selected */}
-      {(selectedFileData || fileError) && (
+      {(selectedFile || fileError) && (
         <div className="px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800/60 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between gap-4 relative z-10">
           {fileError ? (
             <div className="text-xs text-red-500 font-semibold flex items-center gap-1.5">
@@ -355,7 +389,11 @@ export default function ChatArea({ room, onBack }: Props) {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              {selectedFileType?.startsWith('image/') ? (
+              {isUploading ? (
+                <div className="w-12 h-12 rounded-lg bg-[#2481cc]/10 flex items-center justify-center shrink-0">
+                  <div className="w-5 h-5 border-2 border-[#2481cc] border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : selectedFileType?.startsWith('image/') && selectedFileData ? (
                 <div className="w-12 h-12 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900 shrink-0">
                   <img src={selectedFileData} alt="Preview" className="w-full h-full object-cover" />
                 </div>
@@ -365,14 +403,18 @@ export default function ChatArea({ room, onBack }: Props) {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="text-xs font-bold truncate text-zinc-900 dark:text-white">{selectedFileName}</p>
+                <p className="text-xs font-bold truncate text-zinc-900 dark:text-white">
+                  {isUploading ? "Fayl yuklanmoqda..." : selectedFileName}
+                </p>
                 <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5">{selectedFileSize}</p>
               </div>
             </div>
           )}
           <button 
             type="button" 
+            disabled={isUploading}
             onClick={() => {
+              setSelectedFile(null);
               setSelectedFileData(null);
               setSelectedFileName(null);
               setSelectedFileType(null);
@@ -381,7 +423,7 @@ export default function ChatArea({ room, onBack }: Props) {
               if (fileInputRef.current) fileInputRef.current.value = '';
               if (cameraInputRef.current) cameraInputRef.current.value = '';
             }} 
-            className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+            className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors disabled:opacity-50"
           >
             <X className="w-4 h-4" />
           </button>
@@ -466,17 +508,19 @@ export default function ChatArea({ room, onBack }: Props) {
           </button>
           <input 
             type="text" 
-            placeholder={selectedFileData ? "Izoh yozing..." : "Xabar yozing..."}
-            className="flex-1 bg-zinc-100 dark:bg-zinc-800 py-2.5 px-4 rounded-xl outline-none border border-transparent focus:border-[#2481cc]/20 dark:focus:border-[#2fa5e4]/20 text-zinc-950 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#7995b0] text-sm shadow-sm"
+            disabled={isUploading}
+            placeholder={selectedFile ? "Izoh yozing..." : "Xabar yozing..."}
+            className="flex-1 bg-zinc-100 dark:bg-zinc-800 py-2.5 px-4 rounded-xl outline-none border border-transparent focus:border-[#2481cc]/20 dark:focus:border-[#2fa5e4]/20 text-zinc-950 dark:text-white placeholder:text-zinc-400 dark:placeholder:text-[#7995b0] text-sm shadow-sm disabled:opacity-75"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
           />
-          {(inputText.trim() || selectedFileData) ? (
+          {(inputText.trim() || selectedFile) ? (
             <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: isUploading ? 1 : 1.05 }}
+              whileTap={{ scale: isUploading ? 1 : 0.95 }}
               type="submit" 
-              className="p-3 bg-[#2481cc] hover:bg-[#1d6fa5] dark:bg-[#2fa5e4] dark:hover:bg-[#1d6fa5] rounded-full text-white shadow-lg shrink-0"
+              disabled={isUploading}
+              className="p-3 bg-[#2481cc] hover:bg-[#1d6fa5] dark:bg-[#2fa5e4] dark:hover:bg-[#1d6fa5] rounded-full text-white shadow-lg shrink-0 disabled:opacity-50"
               title="Yuborish"
             >
               <Send className="w-5 h-5" />
