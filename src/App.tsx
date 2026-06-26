@@ -34,16 +34,16 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(true);
 
-  const [gatePassword, setGatePassword] = useState<string>('azamxonov');
+  const [gatePassword, setGatePassword] = useState<string>('family');
   const [isGateVerified, setIsGateVerified] = useState<boolean>(false);
   const [gateLoading, setGateLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const docRef = doc(db, 'settings', 'security');
     const unsub = onSnapshot(docRef, (snapshot) => {
-      let currentPass = 'azamxonov';
+      let currentPass = 'family';
       if (snapshot.exists()) {
-        currentPass = snapshot.data().gatePassword || 'azamxonov';
+        currentPass = snapshot.data().gatePassword || 'family';
       }
       setGatePassword(currentPass);
       

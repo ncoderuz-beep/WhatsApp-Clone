@@ -32,9 +32,9 @@ export default function SettingsDrawer({ profile, onClose }: Props) {
         const docRef = doc(db, 'settings', 'security');
         const snap = await getDoc(docRef);
         if (snap.exists()) {
-          setNewGatePassword(snap.data().gatePassword || 'azamxonov');
+          setNewGatePassword(snap.data().gatePassword || 'family');
         } else {
-          setNewGatePassword('azamxonov');
+          setNewGatePassword('family');
         }
       } catch (err) {
         console.error('Failed to fetch security setting:', err);
