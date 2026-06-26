@@ -104,10 +104,10 @@ export default function ChatMain({ onDarkModeToggle, isDarkMode }: Props) {
                 </div>
               ) : (
                 <div className="w-24 h-24 bg-[#2481cc]/10 dark:bg-[#2fa5e4]/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <span className="text-4xl text-[#2481cc] dark:text-[#2fa5e4] font-bold">W</span>
+                  <span className="text-4xl text-[#2481cc] dark:text-[#2fa5e4] font-bold">S</span>
                 </div>
               )}
-              <h2 className="text-2xl font-bold dark:text-white mb-2">WhatsApp Web</h2>
+              <h2 className="text-2xl font-bold dark:text-white mb-2">Suhbat Web</h2>
               <p className="text-zinc-500 dark:text-zinc-400 text-sm">
                 Xabarlar shifrlangan holda yuboriladi. Chatlashish uchun chap tomondagi ro'yxatdan birortasini tanlang.
               </p>
