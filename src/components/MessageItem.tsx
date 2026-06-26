@@ -77,6 +77,102 @@ export default function MessageItem({ message, isOwn, roomId, currentUserId, sho
     );
   }
 
+  const isSticker = message.fileType === 'sticker';
+
+  if (isSticker && message.fileURL) {
+    return (
+      <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full group mb-1`}>
+        <div 
+          className="relative cursor-pointer select-none"
+          onMouseEnter={() => setShowActions(true)}
+          onMouseLeave={() => { setShowActions(false); setShowReactions(false); }}
+          onClick={() => setShowActions(!showActions)}
+        >
+          {showSenderName && !isOwn && (
+            <div className="text-[10px] font-bold text-[#2481cc] dark:text-[#2fa5e4] mb-1 px-1">{message.senderName}</div>
+          )}
+          
+          <div className="relative group/sticker px-2 py-1">
+            <img 
+              src={message.fileURL} 
+              alt="Sticker" 
+              className="w-28 h-28 md:w-32 md:h-32 object-contain hover:scale-105 active:scale-95 transition-transform duration-200 drop-shadow-sm" 
+            />
+            
+            {/* Simple elegant floating clock badge for stickers */}
+            <div className="absolute bottom-1 right-2 bg-black/45 dark:bg-black/60 text-white rounded-md px-1.5 py-[1px] text-[8px] pointer-events-none flex items-center gap-1 backdrop-blur-[1px]">
+              <span>{formatTime(message.timestamp)}</span>
+              {isOwn && <CheckCheck className="w-3 h-3 text-[#4ca3ff] dark:text-[#2fa5e4]" />}
+            </div>
+          </div>
+
+          {/* Reaction badge */}
+          {message.reactions && Object.entries(message.reactions).some(([_, u]) => u.length > 0) && (
+            <div 
+              onClick={(e) => { e.stopPropagation(); setShowReactions(!showReactions); }}
+              className={`absolute -bottom-2 ${isOwn ? 'right-2' : 'left-2'} flex gap-1 bg-white dark:bg-zinc-800 shadow-sm border border-zinc-100 dark:border-zinc-700 rounded-full px-2 py-0.5 z-10 hover:scale-105 transition-transform cursor-pointer`}
+            >
+              {Object.entries(message.reactions).map(([emoji, users]) => users.length > 0 && (
+                <div key={emoji} className="flex items-center gap-0.5">
+                  <span className="text-[11px] scale-90">{emoji}</span>
+                  {users.length > 1 && (
+                    <span className="text-[9px] text-zinc-500 font-bold">{users.length}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Floating Actions */}
+          <AnimatePresence>
+            {showActions && (
+              <motion.div 
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 5 }}
+                className={`absolute top-2 ${isOwn ? '-left-8' : '-right-8'} flex flex-col gap-1 z-20`}
+              >
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowReactions(!showReactions); }} 
+                  className="bg-white dark:bg-zinc-800 p-1.5 rounded-full shadow-lg border border-zinc-100 dark:border-zinc-700 hover:scale-110 transition-transform"
+                >
+                  <Smile className="w-3.5 h-3.5 text-zinc-500" />
+                </button>
+                {isOwn && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDelete(); }} 
+                    className="bg-white dark:bg-zinc-800 p-1.5 rounded-full shadow-lg border border-zinc-100 dark:border-zinc-700 hover:scale-110 transition-transform text-red-500"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Reaction Selector */}
+          {showReactions && (
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={`absolute -top-10 ${isOwn ? 'right-0' : 'left-0'} flex gap-2 bg-white dark:bg-zinc-800 shadow-2xl rounded-full p-2 border border-zinc-100 dark:border-zinc-700 z-50`}
+            >
+              {REACTIONS.map(emoji => (
+                <button 
+                  key={emoji} 
+                  onClick={(e) => { e.stopPropagation(); handleReact(emoji); }}
+                  className="hover:scale-125 transition-transform text-lg"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'} w-full group mb-1`}>
       <div 

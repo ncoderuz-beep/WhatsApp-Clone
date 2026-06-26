@@ -24,6 +24,43 @@ const EMOJI_CATEGORIES = [
   }
 ];
 
+const createSvgSticker = (emoji: string, line1: string, line2: string, fromColor: string, toColor: string) => {
+  const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="grad-${emoji.charCodeAt(0) || 0}" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="${fromColor}"/>
+      <stop offset="100%" stop-color="${toColor}"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="110" height="110" rx="28" fill="url(#grad-${emoji.charCodeAt(0) || 0})" />
+  <circle cx="60" cy="42" r="22" fill="white" opacity="0.12"/>
+  <text x="60" y="50" font-family="system-ui, -apple-system, sans-serif" font-size="28" fill="white" text-anchor="middle">${emoji}</text>
+  <text x="60" y="82" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="9" fill="white" text-anchor="middle" letter-spacing="1">${line1}</text>
+  <text x="60" y="95" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="9" fill="white" opacity="0.9" text-anchor="middle" letter-spacing="1">${line2}</text>
+</svg>
+  `.trim();
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+};
+
+const STICKERS_LIST = [
+  // SVG Badges
+  { id: 'uz_salom', url: createSvgSticker('🤝', 'ASSALOMU', 'ALAYKUM!', '#00b4db', '#0083b0'), name: 'Assalomu alaykum' },
+  { id: 'uz_rahmat', url: createSvgSticker('💖', 'KATTAKON', 'RAHMAT!', '#ff416c', '#ff4b2b'), name: 'Rahmat' },
+  { id: 'uz_zor', url: createSvgSticker('🔥', 'GAP YO\'Q!', 'ZO\'R!', '#f12711', '#f5af19'), name: 'Zo\'r' },
+  { id: 'uz_choy', url: createSvgSticker('🍵', 'CHOYXONAGA', 'KETDIK!', '#11998e', '#38ef7d'), name: 'Choyxona' },
+  { id: 'uz_ok', url: createSvgSticker('💡', 'TUSHUNARLI', 'OK!', '#7f00ff', '#e100ff'), name: 'Tushunarli' },
+  { id: 'uz_omad', url: createSvgSticker('🎉', 'TABRIKLAYMAN', 'OMAD!', '#f1c40f', '#e67e22'), name: 'Omad' },
+  
+  // Animated Cats
+  { id: 'cat_wave', url: 'https://media.giphy.com/media/C9x8gX02SnMIoAclby/giphy.gif', name: 'Salom mushuk' },
+  { id: 'cat_love', url: 'https://media.giphy.com/media/Ge86IZm9KkaY39MoyX/giphy.gif', name: 'Yaxshi ko\'rish' },
+  { id: 'cat_cry', url: 'https://media.giphy.com/media/g9582DNuQppazNwd7V/giphy.gif', name: 'Yig\'lash' },
+  { id: 'cat_shock', url: 'https://media.giphy.com/media/2NfCPrfX3bY6Z7mP7J/giphy.gif', name: 'Dahshat' },
+  { id: 'cat_sleep', url: 'https://media.giphy.com/media/Y8SCSg69paI964bLgK/giphy.gif', name: 'Uxlash' },
+  { id: 'cat_angry', url: 'https://media.giphy.com/media/jYp8S7vfX0Q66v8V79/giphy.gif', name: 'Achiq' }
+];
+
 interface Props {
   room: ChatRoom;
   onBack: () => void;
@@ -45,6 +82,8 @@ export default function ChatArea({ room, onBack }: Props) {
   const [otherUserProfile, setOtherUserProfile] = useState<UserProfile | null>(null);
 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeTab, setActiveTab] = useState<'emoji' | 'sticker'>('emoji');
+  const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileData, setSelectedFileData] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
@@ -55,13 +94,10 @@ export default function ChatArea({ room, onBack }: Props) {
 
   const otherUserId = room.participants?.find(p => p !== user?.uid);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processSelectedFile = (file: File) => {
     setFileError(null);
 
-    // Now we support files up to 20MB safely using Firebase Storage!
+    // Support files up to 20MB using Firebase Storage
     if (file.size > 20 * 1024 * 1024) {
       setFileError('Fayl hajmi juda katta. Iltimos, 20 MB dan kichik bo\'lgan faylni tanlang.');
       return;
@@ -82,6 +118,69 @@ export default function ChatArea({ room, onBack }: Props) {
       setSelectedFileData(objectURL);
     } else {
       setSelectedFileData(null);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processSelectedFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFile = e.dataTransfer.files[0];
+      processSelectedFile(droppedFile);
+    }
+  };
+
+  const handleSendSticker = async (stickerUrl: string) => {
+    if (!user) return;
+    setShowEmojiPicker(false);
+
+    try {
+      await addDoc(collection(db, 'rooms', room.id, 'messages'), {
+        chatId: room.id,
+        senderId: user.uid,
+        senderName: profile?.displayName || 'Unknown',
+        text: '',
+        timestamp: serverTimestamp(),
+        isEdited: false,
+        isDeleted: false,
+        reactions: {},
+        fileURL: stickerUrl,
+        fileName: 'Stiker',
+        fileType: 'sticker',
+        fileSize: ''
+      });
+
+      // Update last message in room
+      const roomRef = doc(db, 'rooms', room.id);
+      await updateDoc(roomRef, {
+        lastMessage: '🖼️ Stiker',
+        lastMessageTime: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Error sending sticker', err);
     }
   };
 
@@ -235,8 +334,35 @@ export default function ChatArea({ room, onBack }: Props) {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#eef2f5] dark:bg-[#0e1621] relative">
+    <div 
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="flex-1 flex flex-col h-full bg-[#eef2f5] dark:bg-[#0e1621] relative"
+    >
       <div className="whatsapp-bg absolute inset-0 opacity-10 pointer-events-none" />
+
+      {/* Drag & Drop Visual Overlay */}
+      <AnimatePresence>
+        {isDragging && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-[#2481cc]/20 dark:bg-[#2fa5e4]/15 backdrop-blur-sm z-50 flex flex-col items-center justify-center pointer-events-none border-4 border-dashed border-[#2481cc]/60 m-2 rounded-2xl"
+          >
+            <div className="bg-white dark:bg-zinc-900 rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-4 border border-zinc-200 dark:border-zinc-800 scale-95 md:scale-100">
+              <div className="w-16 h-16 rounded-full bg-[#2481cc]/10 dark:bg-[#2fa5e4]/20 flex items-center justify-center text-[#2481cc] dark:text-[#2fa5e4] animate-bounce">
+                <Paperclip className="w-8 h-8" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-bold text-zinc-900 dark:text-white">Faylni shu yerga tashlang</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Rasm yoki istalgan hujjat (max 20MB)</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Room Header */}
       <div className="h-[60px] flex items-center justify-between px-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800/80 relative z-30">
@@ -430,7 +556,7 @@ export default function ChatArea({ room, onBack }: Props) {
         </div>
       )}
 
-      {/* Emoji Picker Popover */}
+      {/* Emoji & Sticker Picker Popover */}
       <AnimatePresence>
         {showEmojiPicker && (
           <>
@@ -439,34 +565,74 @@ export default function ChatArea({ room, onBack }: Props) {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 15 }}
-              className="absolute bottom-16 left-4 right-4 md:left-6 md:right-auto md:w-[350px] max-h-[280px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden"
+              className="absolute bottom-16 left-4 right-4 md:left-6 md:right-auto md:w-[350px] h-[340px] max-h-[340px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl z-50 flex flex-col overflow-hidden"
             >
-              <div className="p-3 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900 flex justify-between items-center">
-                <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Emoji va Smayllar</span>
-                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300">
-                  <X className="w-4 h-4" />
-                </button>
+              <div className="p-3 border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900 flex flex-col gap-2 shrink-0">
+                <div className="flex justify-between items-center">
+                  <div className="flex bg-zinc-200/60 dark:bg-zinc-800 p-0.5 rounded-lg">
+                    <button 
+                      type="button"
+                      onClick={() => setActiveTab('emoji')}
+                      className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${activeTab === 'emoji' ? 'bg-white dark:bg-zinc-700 text-[#2481cc] dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:text-[#7995b0]'}`}
+                    >
+                      Smayllar
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setActiveTab('sticker')}
+                      className={`px-3 py-1 text-[11px] font-bold rounded-md transition-all ${activeTab === 'sticker' ? 'bg-white dark:bg-zinc-700 text-[#2481cc] dark:text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-700 dark:text-[#7995b0]'}`}
+                    >
+                      Stikerlar
+                    </button>
+                  </div>
+                  <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 p-1">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+
               <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-4">
-                {EMOJI_CATEGORIES.map((cat, idx) => (
-                  <div key={idx} className="space-y-1.5">
-                    <h4 className="text-[10px] font-bold text-zinc-400 dark:text-[#7995b0] uppercase tracking-wider">{cat.title}</h4>
-                    <div className="grid grid-cols-8 gap-1">
-                      {cat.emojis.map(emoji => (
+                {activeTab === 'emoji' ? (
+                  <>
+                    {EMOJI_CATEGORIES.map((cat, idx) => (
+                      <div key={idx} className="space-y-1.5">
+                        <h4 className="text-[10px] font-bold text-zinc-400 dark:text-[#7995b0] uppercase tracking-wider">{cat.title}</h4>
+                        <div className="grid grid-cols-8 gap-1">
+                          {cat.emojis.map(emoji => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => {
+                                setInputText(prev => prev + emoji);
+                              }}
+                              className="text-xl p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg active:scale-90 transition-transform flex items-center justify-center"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className="space-y-3 pb-2">
+                    <h4 className="text-[10px] font-bold text-zinc-400 dark:text-[#7995b0] uppercase tracking-wider mb-2">Uzbekcha va Mushuk stikerlari</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {STICKERS_LIST.map(st => (
                         <button
-                          key={emoji}
+                          key={st.id}
                           type="button"
-                          onClick={() => {
-                            setInputText(prev => prev + emoji);
-                          }}
-                          className="text-xl p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg active:scale-90 transition-transform flex items-center justify-center"
+                          onClick={() => handleSendSticker(st.url)}
+                          className="p-1.5 bg-zinc-50 dark:bg-zinc-800/40 hover:bg-[#2481cc]/10 dark:hover:bg-[#2fa5e4]/10 rounded-xl active:scale-95 transition-all flex flex-col items-center justify-center gap-1 border border-transparent hover:border-[#2481cc]/20"
+                          title={st.name}
                         >
-                          {emoji}
+                          <img src={st.url} alt={st.name} className="w-14 h-14 object-contain pointer-events-none drop-shadow-sm" />
+                          <span className="text-[9px] font-medium text-zinc-500 dark:text-zinc-400 truncate w-full text-center">{st.name}</span>
                         </button>
                       ))}
                     </div>
                   </div>
-                ))}
+                )}
               </div>
             </motion.div>
           </>
